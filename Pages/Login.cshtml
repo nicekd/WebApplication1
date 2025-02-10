@@ -19,8 +19,17 @@
                     </ul>
                 </div>
             }
+            @if (!string.IsNullOrEmpty(Model.RecaptchaScoreMessage))
+            {
+                <div class="alert alert-info" role="alert">
+                    @Model.RecaptchaScoreMessage
+                </div>
+            }
 
             <form method="post">
+                <!-- reCAPTCHA v3 Hidden Field -->
+                <input type="hidden" id="g-recaptcha-response" name="g-recaptcha-response" />
+
                 <div class="mb-3">
                     <label class="form-label" asp-for="LModel.Email">Email Address</label>
                     <input type="text" asp-for="LModel.Email" class="form-control" />
@@ -47,6 +56,18 @@
                     <a asp-page="ForgotPassword">Forgot Password?</a>
                 </div>
             </form>
+
+            <!-- Google reCAPTCHA v3 Script (Hardcoded Site Key) -->
+            <script src="https://www.google.com/recaptcha/api.js?render=6LfA9tIqAAAAADL71YtskfuxNEGglq5gOWmiGEWn"></script>
+            <input type="hidden" id="g-recaptcha-response" name="g-recaptcha-response" />
+
+            <script>
+                grecaptcha.ready(function () {
+                    grecaptcha.execute("6LfA9tIqAAAAADL71YtskfuxNEGglq5gOWmiGEWn", { action: "login" }).then(function (token) {
+                        document.getElementById("g-recaptcha-response").value = token;
+                    });
+                });
+            </script>
         </div>
     </div>
 </div>

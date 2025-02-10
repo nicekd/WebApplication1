@@ -11,6 +11,8 @@ builder.Services.AddTransient<IEmailSender, EmailSender>();
 // Add services to the container.
 builder.Services.AddRazorPages();
 
+builder.Services.AddHttpClient();
+
 builder.Services.AddDbContext<AuthDbContext>();
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>().AddEntityFrameworkStores<AuthDbContext>()
     .AddDefaultTokenProviders();

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Configuration;
 using WebApplication1.Model;
@@ -15,6 +16,7 @@ namespace WebApplication1.Pages
 
         public ApplicationUser CurrentUser { get; private set; }
         public string DecryptedCreditCardNo { get; private set; }
+        public bool TwoFactorEnabled { get; private set; } // Track 2FA status
 
         public IndexModel(UserManager<ApplicationUser> userManager, IConfiguration configuration)
         {
@@ -28,11 +30,36 @@ namespace WebApplication1.Pages
             {
                 CurrentUser = await userManager.GetUserAsync(User);
 
-                if (CurrentUser != null && !string.IsNullOrEmpty(CurrentUser.CreditCardNo))
+                if (CurrentUser != null)
                 {
-                    DecryptedCreditCardNo = DecryptCreditCard(CurrentUser.CreditCardNo);
+                    TwoFactorEnabled = CurrentUser.TwoFactorEnabled;
+
+                    if (!string.IsNullOrEmpty(CurrentUser.CreditCardNo))
+                    {
+                        DecryptedCreditCardNo = DecryptCreditCard(CurrentUser.CreditCardNo);
+                    }
                 }
             }
+        }
+
+        public async Task<IActionResult> OnPostEnable2FA()
+        {
+            var user = await userManager.GetUserAsync(User);
+            if (user != null)
+            {
+                await userManager.SetTwoFactorEnabledAsync(user, true);
+            }
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostDisable2FA()
+        {
+            var user = await userManager.GetUserAsync(User);
+            if (user != null)
+            {
+                await userManager.SetTwoFactorEnabledAsync(user, false);
+            }
+            return RedirectToPage();
         }
 
         // Decrypt Credit Card Number using Key & IV from appsettings.json
@@ -63,4 +90,3 @@ namespace WebApplication1.Pages
         }
     }
 }
-

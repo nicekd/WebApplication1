@@ -6,24 +6,30 @@ namespace WebApplication1.ViewModels
     public class Register
     {
         [Required]
+        [RegularExpression(@"^[a-zA-Z\s]+$", ErrorMessage = "First Name can only contain letters and spaces.")]
         public string FirstName { get; set; }
 
         [Required]
+        [RegularExpression(@"^[a-zA-Z\s]+$", ErrorMessage = "Last Name can only contain letters and spaces.")]
         public string LastName { get; set; }
 
         [Required]
         [DataType(DataType.CreditCard)]
+        [RegularExpression(@"^\d{16,19}$", ErrorMessage = "Credit Card Number must be between 16 to 19 digits.")]
         public string CreditCardNo { get; set; }  // Will be encrypted before storing
 
         [Required]
         [Phone]
+        [RegularExpression(@"^\+?\d{8,15}$", ErrorMessage = "Mobile Number must contain only digits and can include a leading + for country code.")]
         public string MobileNo { get; set; }
 
         [Required]
+        [RegularExpression(@"^[a-zA-Z0-9\s,.-]+$", ErrorMessage = "Billing Address contains invalid characters.")]
         public string BillingAddress { get; set; }
 
         [Required]
-        public string ShippingAddress { get; set; }  // Allows all special characters
+        [RegularExpression(@"^[a-zA-Z0-9\s,.-]+$", ErrorMessage = "Shipping Address contains invalid characters.")]
+        public string ShippingAddress { get; set; }  // Allows letters, numbers, spaces, and ,.-
 
         [Required]
         [DataType(DataType.EmailAddress)]

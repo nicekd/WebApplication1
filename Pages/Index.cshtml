@@ -26,6 +26,28 @@
                 <div class="mt-3">
                     <a class="btn btn-warning" asp-page="ChangePassword">Change Password</a>
                 </div>
+
+                <!-- Two-Factor Authentication Toggle Buttons -->
+                <div class="mt-3">
+                    <p><strong>Two-Factor Authentication:</strong> <span class="badge @(Model.TwoFactorEnabled ? "bg-success" : "bg-danger")">
+                        @(Model.TwoFactorEnabled ? "Enabled" : "Disabled")
+                    </span></p>
+
+                    <form method="post">
+                        <button type="submit" asp-page-handler="Enable2FA"
+                                class="btn btn-success"
+                                disabled="@(Model.TwoFactorEnabled ? "disabled" : null)">
+                            Enable 2FA
+                        </button>
+
+                        <button type="submit" asp-page-handler="Disable2FA"
+                                class="btn btn-danger"
+                                disabled="@(Model.TwoFactorEnabled ? null : "disabled")">
+                            Disable 2FA
+                        </button>
+                    </form>
+
+                </div>
             </div>
         </div>
     }

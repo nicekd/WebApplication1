@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Configuration;
@@ -7,7 +7,9 @@ using WebApplication1.ViewModels;
 using System.Security.Cryptography;
 using System.Text;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace WebApplication1.Pages
 {
@@ -43,14 +45,17 @@ namespace WebApplication1.Pages
             if (!ModelState.IsValid)
                 return Page();
 
+            // ✅ Sanitize user input
+            SanitizeInput();
+
             // Encrypt Credit Card Number using settings from appsettings.json
             string encryptedCreditCard = EncryptCreditCard(RModel.CreditCardNo);
 
             // Create ApplicationUser object
             var user = new ApplicationUser()
             {
-                UserName = RModel.Email,
-                Email = RModel.Email,
+                UserName = RModel.Email.Trim(),
+                Email = RModel.Email.Trim(),
                 FirstName = RModel.FirstName,
                 LastName = RModel.LastName,
                 MobileNo = RModel.MobileNo,
@@ -99,6 +104,29 @@ namespace WebApplication1.Pages
             // Sign in and redirect to homepage
             await signInManager.SignInAsync(user, false);
             return RedirectToPage("Index");
+        }
+
+        // ✅ Data Sanitization Method
+        private void SanitizeInput()
+        {
+            RModel.FirstName = CleanText(RModel.FirstName);
+            RModel.LastName = CleanText(RModel.LastName);
+            RModel.Email = RModel.Email.Trim();
+            RModel.MobileNo = Regex.Replace(RModel.MobileNo, @"[^0-9+]", ""); // Only allow digits and +
+            RModel.BillingAddress = CleanAddress(RModel.BillingAddress);
+            RModel.ShippingAddress = CleanAddress(RModel.ShippingAddress);
+        }
+
+        // ✅ Removes special characters except spaces (For Names)
+        private string CleanText(string input)
+        {
+            return string.IsNullOrWhiteSpace(input) ? "" : Regex.Replace(input.Trim(), @"[^a-zA-Z\s]", "");
+        }
+
+        // ✅ Cleans Address Fields (Allows letters, numbers, spaces, and common address symbols)
+        private string CleanAddress(string input)
+        {
+            return string.IsNullOrWhiteSpace(input) ? "" : Regex.Replace(input.Trim(), @"[^a-zA-Z0-9\s,.-]", "");
         }
 
         // Encrypt Credit Card Number before storing

@@ -1,5 +1,4 @@
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
@@ -10,42 +9,49 @@ namespace WebApplication1.Pages
 {
     public class LoginModel : PageModel
     {
-
         [BindProperty]
         public Login LModel { get; set; }
+        public string ErrorMessage { get; private set; }
 
         private readonly SignInManager<ApplicationUser> signInManager;
-        public LoginModel(SignInManager<ApplicationUser> signInManager)
+        private readonly UserManager<ApplicationUser> userManager;
+
+        public LoginModel(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager)
         {
             this.signInManager = signInManager;
+            this.userManager = userManager;
         }
+
         public void OnGet()
         {
         }
+
         public async Task<IActionResult> OnPostAsync()
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                var identityResult = await signInManager.PasswordSignInAsync(LModel.Email,
-                LModel.Password, LModel.RememberMe, false);
-                if (identityResult.Succeeded)
+                if (string.IsNullOrEmpty(LModel.Email) || string.IsNullOrEmpty(LModel.Password))
                 {
-                    //Create the security context
-                    var claims = new List<Claim> {
-                        new Claim(ClaimTypes.Name, "c@c.com"),
-                        new Claim(ClaimTypes.Email, "c@c.com"),
-
-                        new Claim("Department", "HR")
-                    };
-
-                    var i = new ClaimsIdentity(claims, "MyCookieAuth");
-                    ClaimsPrincipal claimsPrincipal = new ClaimsPrincipal(i);
-                    await HttpContext.SignInAsync("MyCookieAuth", claimsPrincipal);
-
-                    return RedirectToPage("Index");
+                    ModelState.AddModelError(string.Empty, "Please fill in both email and password.");
+                    return Page();
                 }
-                ModelState.AddModelError("", "Username or Password incorrect");
             }
+
+            var user = await userManager.FindByEmailAsync(LModel.Email);
+            if (user == null)
+            {
+                ModelState.AddModelError(string.Empty, "Invalid email or password.");
+                return Page();
+            }
+
+            var identityResult = await signInManager.PasswordSignInAsync(user, LModel.Password, LModel.RememberMe, false);
+
+            if (identityResult.Succeeded)
+            {
+                return RedirectToPage("Index");
+            }
+
+            ModelState.AddModelError(string.Empty, "Invalid email or password.");
             return Page();
         }
     }

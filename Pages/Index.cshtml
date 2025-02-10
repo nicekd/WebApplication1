@@ -1,10 +1,39 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container mt-5">
+    @if (User.Identity.IsAuthenticated && Model.CurrentUser != null)
+    {
+        <h1 class="text-center">Welcome, @Model.CurrentUser.FirstName!</h1>
+
+        <div class="card mx-auto mt-4" style="max-width: 500px;">
+            @if (!string.IsNullOrEmpty(Model.CurrentUser.PhotoPath))
+            {
+                <img src="@Model.CurrentUser.PhotoPath" class="card-img-top" alt="Profile Photo" />
+            }
+            <div class="card-body">
+                <h5 class="card-title">@Model.CurrentUser.FirstName @Model.CurrentUser.LastName</h5>
+                <p class="card-text"><strong>Email:</strong> @Model.CurrentUser.Email</p>
+                <p class="card-text"><strong>Mobile No:</strong> @Model.CurrentUser.MobileNo</p>
+                <p class="card-text"><strong>Billing Address:</strong> @Model.CurrentUser.BillingAddress</p>
+                <p class="card-text"><strong>Shipping Address:</strong> @Model.CurrentUser.ShippingAddress</p>
+                <p class="card-text"><strong>Credit Card No:</strong> @Model.DecryptedCreditCardNo</p>
+
+                <!-- Change Password Button -->
+                <div class="mt-3">
+                    <a class="btn btn-warning" asp-page="ChangePassword">Change Password</a>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="text-center">
+            <h1 class="display-4">Welcome</h1>
+            <p>Welcome to Bookworms Online</p>
+        </div>
+    }
 </div>

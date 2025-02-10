@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using WebApplication1.Model;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,7 +8,22 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 
 builder.Services.AddDbContext<AuthDbContext>();
-builder.Services.AddIdentity<IdentityUser, IdentityRole>().AddEntityFrameworkStores<AuthDbContext>();
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>().AddEntityFrameworkStores<AuthDbContext>();
+
+builder.Services.AddAuthentication("MyCookieAuth").AddCookie("MyCookieAuth", options
+=>
+{
+    options.Cookie.Name = "MyCookieAuth";
+
+    options.AccessDeniedPath = "/Account/AccessDenied";
+
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("MustBelongToHRDepartment",
+        policy => policy.RequireClaim("Department", "HR"));
+});
 
 builder.Services.ConfigureApplicationCookie(Config =>
 {
@@ -26,6 +42,8 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+app.UseStatusCodePagesWithRedirects("/errors/{0}");
 
 app.UseRouting();
 

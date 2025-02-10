@@ -56,7 +56,8 @@ namespace WebApplication1.Pages
                 MobileNo = RModel.MobileNo,
                 BillingAddress = RModel.BillingAddress,
                 ShippingAddress = RModel.ShippingAddress,
-                CreditCardNo = encryptedCreditCard
+                CreditCardNo = encryptedCreditCard,
+                TwoFactorEnabled = true
             };
 
             // Save Profile Photo

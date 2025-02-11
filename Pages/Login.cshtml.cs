@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using WebApplication1.Model;
 using WebApplication1.ViewModels;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using System;
 
 namespace WebApplication1.Pages
 {
@@ -69,32 +70,41 @@ namespace WebApplication1.Pages
                 return Page();
             }
 
-            var passwordCheck = await signInManager.CheckPasswordSignInAsync(user, LModel.Password, false);
-            if (!passwordCheck.Succeeded)
+            // ✅ Step 4: Check if the user is locked out
+            if (await userManager.IsLockedOutAsync(user))
+            {
+                ModelState.AddModelError(string.Empty, "Your account has been locked due to multiple failed attempts. Please try again in 1 minute.");
+                return Page();
+            }
+
+            // ✅ Step 5: Attempt login (enables lockout on failure)
+            var result = await signInManager.PasswordSignInAsync(user, LModel.Password, LModel.RememberMe, lockoutOnFailure: true);
+
+            if (result.Succeeded)
+            {
+                await userManager.ResetAccessFailedCountAsync(user); // ✅ Reset failed attempt count on successful login
+
+                // ✅ Step 6: Check if 2FA is enabled
+                if (await userManager.GetTwoFactorEnabledAsync(user))
+                {
+                    var token = await userManager.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider);
+                    await emailSender.SendEmailAsync(user.Email, "Your 2FA Code", $"Your verification code is: {token}");
+
+                    return RedirectToPage("Verify2FA", new { userId = user.Id, rememberMe = LModel.RememberMe });
+                }
+
+                return RedirectToPage("Index");
+            }
+            else if (result.IsLockedOut)
+            {
+                ModelState.AddModelError(string.Empty, "Your account has been locked due to multiple failed attempts. Please try again in 1 minute.");
+                return Page();
+            }
+            else
             {
                 ModelState.AddModelError(string.Empty, "Invalid email or password.");
                 return Page();
             }
-
-            // ✅ Step 4: Check if 2FA is enabled
-            if (await userManager.GetTwoFactorEnabledAsync(user))
-            {
-                var token = await userManager.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider);
-                await emailSender.SendEmailAsync(user.Email, "Your 2FA Code", $"Your verification code is: {token}");
-
-                return RedirectToPage("Verify2FA", new { userId = user.Id, rememberMe = LModel.RememberMe });
-            }
-
-            // ✅ Step 5: Log in directly if 2FA is NOT enabled
-            var result = await signInManager.PasswordSignInAsync(user, LModel.Password, LModel.RememberMe, false);
-
-            if (result.Succeeded)
-            {
-                return RedirectToPage("Index");
-            }
-
-            ModelState.AddModelError(string.Empty, "Invalid email or password.");
-            return Page();
         }
 
         // 🔹 Validate reCAPTCHA response
@@ -124,4 +134,3 @@ namespace WebApplication1.Pages
         }
     }
 }
-

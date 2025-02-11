@@ -78,7 +78,7 @@ namespace WebApplication1.Pages
             }
 
             // ✅ Step 5: Attempt login (enables lockout on failure)
-            var result = await signInManager.PasswordSignInAsync(user, LModel.Password, LModel.RememberMe, lockoutOnFailure: true);
+            var result = await signInManager.CheckPasswordSignInAsync(user, LModel.Password, false);
 
             if (result.Succeeded)
             {
@@ -87,12 +87,17 @@ namespace WebApplication1.Pages
                 // ✅ Step 6: Check if 2FA is enabled
                 if (await userManager.GetTwoFactorEnabledAsync(user))
                 {
+                    // ✅ Temporarily authenticate the user, requiring 2FA verification
+                    await signInManager.SignInAsync(user, isPersistent: false, authenticationMethod: "TwoFactor");
+
                     var token = await userManager.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider);
                     await emailSender.SendEmailAsync(user.Email, "Your 2FA Code", $"Your verification code is: {token}");
 
                     return RedirectToPage("Verify2FA", new { userId = user.Id, rememberMe = LModel.RememberMe });
                 }
 
+                // ✅ If 2FA is NOT enabled, log the user in fully
+                await signInManager.SignInAsync(user, LModel.RememberMe);
                 return RedirectToPage("Index");
             }
             else if (result.IsLockedOut)

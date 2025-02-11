@@ -36,7 +36,7 @@ namespace WebApplication1.Pages
                 return RedirectToPage("Login");
             }
 
-            // Validate the OTP Code
+            // ✅ Validate the OTP Code
             var isValid = await userManager.VerifyTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider, OtpCode);
             if (!isValid)
             {
@@ -44,8 +44,12 @@ namespace WebApplication1.Pages
                 return Page();
             }
 
-            // Sign in the user after successful verification
+            // ✅ Remove Partial Authentication & Fully Authenticate the User
             await signInManager.SignInAsync(user, rememberMe);
+
+            // ✅ Mark 2FA as completed so they can access protected pages
+            await signInManager.RememberTwoFactorClientAsync(user);
+
             return RedirectToPage("Index");
         }
     }

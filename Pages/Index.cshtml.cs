@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Configuration;
@@ -12,34 +12,52 @@ namespace WebApplication1.Pages
     public class IndexModel : PageModel
     {
         private readonly UserManager<ApplicationUser> userManager;
+        private readonly SignInManager<ApplicationUser> signInManager;
         private readonly IConfiguration configuration;
 
         public ApplicationUser CurrentUser { get; private set; }
         public string DecryptedCreditCardNo { get; private set; }
         public bool TwoFactorEnabled { get; private set; } // Track 2FA status
 
-        public IndexModel(UserManager<ApplicationUser> userManager, IConfiguration configuration)
+        public IndexModel(UserManager<ApplicationUser> userManager,
+                          SignInManager<ApplicationUser> signInManager,
+                          IConfiguration configuration)
         {
             this.userManager = userManager;
+            this.signInManager = signInManager;
             this.configuration = configuration;
         }
 
-        public async Task OnGetAsync()
+        public async Task<IActionResult> OnGetAsync()
         {
-            if (User.Identity.IsAuthenticated)
+            // ✅ Redirect to login if not authenticated
+            if (!User.Identity.IsAuthenticated)
             {
-                CurrentUser = await userManager.GetUserAsync(User);
-
-                if (CurrentUser != null)
-                {
-                    TwoFactorEnabled = CurrentUser.TwoFactorEnabled;
-
-                    if (!string.IsNullOrEmpty(CurrentUser.CreditCardNo))
-                    {
-                        DecryptedCreditCardNo = DecryptCreditCard(CurrentUser.CreditCardNo);
-                    }
-                }
+                return RedirectToPage("Login");
             }
+
+            var user = await userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToPage("Login");
+            }
+
+            // ✅ Check if user requires 2FA but hasn't verified yet
+            if (user.TwoFactorEnabled && !(await signInManager.IsTwoFactorClientRememberedAsync(user)))
+            {
+                return RedirectToPage("Verify2FA", new { userId = user.Id });
+            }
+
+            // ✅ Load user details
+            CurrentUser = user;
+            TwoFactorEnabled = user.TwoFactorEnabled;
+
+            if (!string.IsNullOrEmpty(user.CreditCardNo))
+            {
+                DecryptedCreditCardNo = DecryptCreditCard(user.CreditCardNo);
+            }
+
+            return Page();
         }
 
         public async Task<IActionResult> OnPostEnable2FA()

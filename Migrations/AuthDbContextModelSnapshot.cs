@@ -224,6 +224,12 @@ namespace WebApplication1.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("PreviousPassword1")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PreviousPassword2")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 

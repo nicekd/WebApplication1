@@ -1,19 +1,21 @@
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using WebApplication1.Model;
+using WebApplication1.Services;
 using System;
 
 namespace WebApplication1.Pages
 {
     public class ChangePasswordModel : PageModel
     {
-        private readonly UserManager<ApplicationUser> userManager;
+        private readonly CustomUserManager userManager;
         private readonly SignInManager<ApplicationUser> signInManager;
 
-        public ChangePasswordModel(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+        public ChangePasswordModel(CustomUserManager userManager,
+                                   SignInManager<ApplicationUser> signInManager)
         {
             this.userManager = userManager;
             this.signInManager = signInManager;
@@ -46,18 +48,14 @@ namespace WebApplication1.Pages
             if (!ModelState.IsValid)
                 return Page();
 
-            var user = await userManager.GetUserAsync(User);
+            var userId = userManager.GetUserId(User); // Get User ID from claims
+            var user = await userManager.FindByIdAsync(userId);
             if (user == null)
                 return RedirectToPage("Index");
 
-            // Ensure password can only be changed once per day
-            if (user.LastPasswordChangeDate.HasValue && (DateTime.UtcNow - user.LastPasswordChangeDate.Value).TotalHours < 24)
-            {
-                ModelState.AddModelError(string.Empty, "You can only change your password once every 24 hours.");
-                return Page();
-            }
-
+            // ✅ Change Password Using CustomUserManager (Handles History + Age Policies)
             var result = await userManager.ChangePasswordAsync(user, Input.CurrentPassword, Input.NewPassword);
+
             if (!result.Succeeded)
             {
                 foreach (var error in result.Errors)
@@ -67,12 +65,9 @@ namespace WebApplication1.Pages
                 return Page();
             }
 
-            // Update last password change date
-            user.LastPasswordChangeDate = DateTime.UtcNow;
-            await userManager.UpdateAsync(user);
-
             await signInManager.RefreshSignInAsync(user);
             return RedirectToPage("Index");
         }
+
     }
 }

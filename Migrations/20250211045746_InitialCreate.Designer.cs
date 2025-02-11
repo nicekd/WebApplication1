@@ -12,7 +12,7 @@ using WebApplication1.Model;
 namespace WebApplication1.Migrations
 {
     [DbContext(typeof(AuthDbContext))]
-    [Migration("20250210144155_InitialCreate")]
+    [Migration("20250211045746_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -225,6 +225,12 @@ namespace WebApplication1.Migrations
 
                     b.Property<string>("PhotoPath")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PreviousPassword1")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PreviousPassword2")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SecurityStamp")

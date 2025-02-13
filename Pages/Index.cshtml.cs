@@ -48,8 +48,20 @@ namespace WebApplication1.Pages
                 return RedirectToPage("Verify2FA", new { userId = user.Id });
             }
 
-            // ✅ Load user details
-            CurrentUser = user;
+            // ✅ Load user details and safely decode them
+            CurrentUser = new ApplicationUser
+            {
+                Id = user.Id,
+                FirstName = System.Net.WebUtility.HtmlDecode(user.FirstName),
+                LastName = System.Net.WebUtility.HtmlDecode(user.LastName),
+                Email = System.Net.WebUtility.HtmlDecode(user.Email),
+                MobileNo = System.Net.WebUtility.HtmlDecode(user.MobileNo),
+                BillingAddress = System.Net.WebUtility.HtmlDecode(user.BillingAddress),
+                ShippingAddress = System.Net.WebUtility.HtmlDecode(user.ShippingAddress),
+                PhotoPath = user.PhotoPath,
+                TwoFactorEnabled = user.TwoFactorEnabled
+            };
+
             TwoFactorEnabled = user.TwoFactorEnabled;
 
             if (!string.IsNullOrEmpty(user.CreditCardNo))
@@ -59,6 +71,7 @@ namespace WebApplication1.Pages
 
             return Page();
         }
+
 
         public async Task<IActionResult> OnPostEnable2FA()
         {

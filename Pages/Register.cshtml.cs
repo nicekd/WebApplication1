@@ -113,15 +113,17 @@ namespace WebApplication1.Pages
         }
 
         // ✅ Data Sanitization Method
+        // ✅ Data Sanitization & Encoding Method
         private void SanitizeInput()
         {
-            RModel.FirstName = CleanText(RModel.FirstName);
-            RModel.LastName = CleanText(RModel.LastName);
-            RModel.Email = RModel.Email.Trim();
+            RModel.FirstName = HttpUtility.HtmlEncode(CleanText(RModel.FirstName));
+            RModel.LastName = HttpUtility.HtmlEncode(CleanText(RModel.LastName));
+            RModel.Email = HttpUtility.HtmlEncode(RModel.Email.Trim());
             RModel.MobileNo = Regex.Replace(RModel.MobileNo, @"[^0-9+]", ""); // Only allow digits and +
-            RModel.BillingAddress = CleanAddress(RModel.BillingAddress);
-            RModel.ShippingAddress = CleanAddress(RModel.ShippingAddress);
+            RModel.BillingAddress = HttpUtility.HtmlEncode(CleanAddress(RModel.BillingAddress));
+            RModel.ShippingAddress = HttpUtility.HtmlEncode(CleanAddress(RModel.ShippingAddress));
         }
+
 
         // ✅ Removes special characters except spaces (For Names)
         private string CleanText(string input)

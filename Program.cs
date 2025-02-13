@@ -61,7 +61,7 @@ builder.Services.Configure<IdentityOptions>(options =>
 {
     // ✅ Enable account lockout
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(1); // 1-minute lockout
-    options.Lockout.MaxFailedAccessAttempts = 3; // Lock account after 3 failed attempts
+    options.Lockout.MaxFailedAccessAttempts = 4; // Lock account after 3 failed attempts
     options.Lockout.AllowedForNewUsers = true; // Apply lockout even for new users
 });
 

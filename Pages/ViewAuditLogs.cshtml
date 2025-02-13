@@ -1,0 +1,28 @@
+﻿@page
+@model WebApplication1.Pages.ViewAuditLogsModel
+@{
+    ViewData["Title"] = "My Audit Logs";
+}
+
+<div class="container mt-5">
+    <h2>My Audit Logs</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Action</th>
+                <th>Timestamp</th>
+                <th>IP Address/Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var log in Model.AuditLogs)
+            {
+                <tr>
+                    <td>@log.Action</td>
+                    <td>@log.Timestamp.ToLocalTime()</td>
+                    <td>@log.IPAddress</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

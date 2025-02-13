@@ -7,6 +7,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddTransient<IEmailSender, EmailSender>();
 
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddHttpClient();
@@ -81,11 +83,12 @@ app.UseSession(); // ✅ Ensure session is initialized before authentication
 app.UseAuthentication();
 app.UseAuthorization();
 
-// ✅ Ensure only one active session per user
+// ✅ Ensure only one active session per user and log user actions
 app.Use(async (context, next) =>
 {
     var userManager = context.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
     var signInManager = context.RequestServices.GetRequiredService<SignInManager<ApplicationUser>>();
+    var dbContext = context.RequestServices.GetRequiredService<AuthDbContext>();
 
     if (context.User.Identity.IsAuthenticated && context.Session != null)
     {
@@ -93,17 +96,38 @@ app.Use(async (context, next) =>
         if (user != null)
         {
             var sessionId = context.Session.GetString("SessionId");
+            var ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
 
             // ✅ If session ID does not exist in DB, create a new one
             if (string.IsNullOrEmpty(user.SessionId))
             {
                 user.SessionId = sessionId;
                 await userManager.UpdateAsync(user);
+
+                // ✅ Log login event
+                dbContext.AuditLogs.Add(new AuditLog
+                {
+                    UserId = user.Id,
+                    Action = "Login",
+                    Timestamp = DateTime.UtcNow,
+                    IPAddress = ipAddress
+                });
+                await dbContext.SaveChangesAsync();
             }
 
-            // ✅ If Session ID does not match the stored one, log out previous sessions
+            // ✅ If session ID does not match, log out previous session
             if (user.SessionId != sessionId)
             {
+                // ✅ Log logout event due to session conflict
+                dbContext.AuditLogs.Add(new AuditLog
+                {
+                    UserId = user.Id,
+                    Action = "Logged Out (Session Conflict)",
+                    Timestamp = DateTime.UtcNow,
+                    IPAddress = ipAddress
+                });
+                await dbContext.SaveChangesAsync();
+
                 await signInManager.SignOutAsync();
                 context.Response.Redirect("/Login");
                 return;

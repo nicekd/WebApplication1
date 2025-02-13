@@ -22,6 +22,7 @@ namespace WebApplication1.Pages
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IEmailSender emailSender;
         private readonly IHttpClientFactory httpClientFactory;
+        private readonly AuthDbContext dbContext; // ✅ Added DbContext for Audit Logging
 
         private const string RecaptchaSecretKey = "6LfA9tIqAAAAAFOa5uNXzzn0DtYP7aW6sYqIj3jl"; // 🔹 Hardcoded reCAPTCHA Secret Key
         private const float RecaptchaThreshold = 0.5f; // 🔹 Adjust the threshold as needed
@@ -29,12 +30,14 @@ namespace WebApplication1.Pages
         public LoginModel(SignInManager<ApplicationUser> signInManager,
                           UserManager<ApplicationUser> userManager,
                           IEmailSender emailSender,
-                          IHttpClientFactory httpClientFactory)
+                          IHttpClientFactory httpClientFactory,
+                          AuthDbContext dbContext) // ✅ Injected DbContext
         {
             this.signInManager = signInManager;
             this.userManager = userManager;
             this.emailSender = emailSender;
             this.httpClientFactory = httpClientFactory;
+            this.dbContext = dbContext;
         }
 
         public void OnGet()
@@ -70,15 +73,27 @@ namespace WebApplication1.Pages
                 return Page();
             }
 
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"; // ✅ Get user's IP Address
+
             // ✅ Step 4: Check if the user is locked out
             if (await userManager.IsLockedOutAsync(user))
             {
+                // ✅ Log failed login attempt due to lockout
+                dbContext.AuditLogs.Add(new AuditLog
+                {
+                    UserId = user.Id,
+                    Action = "Login Failed - Account Locked",
+                    Timestamp = DateTime.UtcNow,
+                    IPAddress = ipAddress
+                });
+                await dbContext.SaveChangesAsync();
+
                 ModelState.AddModelError(string.Empty, "Your account has been locked due to multiple failed attempts. Please try again in 1 minute.");
                 return Page();
             }
 
             // ✅ Step 5: Attempt login (enables lockout on failure)
-            var result = await signInManager.CheckPasswordSignInAsync(user, LModel.Password, false);
+            var result = await signInManager.PasswordSignInAsync(user, LModel.Password, false, lockoutOnFailure: true);
 
             if (result.Succeeded)
             {
@@ -99,6 +114,16 @@ namespace WebApplication1.Pages
                 // ✅ Store session in HttpContext
                 HttpContext.Session.SetString("SessionId", newSessionId);
 
+                // ✅ Log successful login
+                dbContext.AuditLogs.Add(new AuditLog
+                {
+                    UserId = user.Id,
+                    Action = "Login Success",
+                    Timestamp = DateTime.UtcNow,
+                    IPAddress = ipAddress
+                });
+                await dbContext.SaveChangesAsync();
+
                 // ✅ Step 7: Check if 2FA is enabled
                 if (await userManager.GetTwoFactorEnabledAsync(user))
                 {
@@ -117,11 +142,34 @@ namespace WebApplication1.Pages
             }
             else if (result.IsLockedOut)
             {
+                // ✅ Log lockout event
+                dbContext.AuditLogs.Add(new AuditLog
+                {
+                    UserId = user.Id,
+                    Action = "Login Failed - Account Locked",
+                    Timestamp = DateTime.UtcNow,
+                    IPAddress = ipAddress
+                });
+                await dbContext.SaveChangesAsync();
+
                 ModelState.AddModelError(string.Empty, "Your account has been locked due to multiple failed attempts. Please try again in 1 minute.");
                 return Page();
             }
             else
             {
+                // ✅ Increment failed login attempt count
+                await userManager.AccessFailedAsync(user);
+
+                // ✅ Log failed login attempt
+                dbContext.AuditLogs.Add(new AuditLog
+                {
+                    UserId = user.Id,
+                    Action = "Login Failed - Invalid Credentials",
+                    Timestamp = DateTime.UtcNow,
+                    IPAddress = ipAddress
+                });
+                await dbContext.SaveChangesAsync();
+
                 ModelState.AddModelError(string.Empty, "Invalid email or password.");
                 return Page();
             }

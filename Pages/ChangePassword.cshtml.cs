@@ -13,12 +13,15 @@ namespace WebApplication1.Pages
     {
         private readonly CustomUserManager userManager;
         private readonly SignInManager<ApplicationUser> signInManager;
+        private readonly IAuditLogService auditLogService; // ✅ Inject Audit Logging Service
 
         public ChangePasswordModel(CustomUserManager userManager,
-                                   SignInManager<ApplicationUser> signInManager)
+                                   SignInManager<ApplicationUser> signInManager,
+                                   IAuditLogService auditLogService) // ✅ Inject Audit Logging
         {
             this.userManager = userManager;
             this.signInManager = signInManager;
+            this.auditLogService = auditLogService;
         }
 
         [BindProperty]
@@ -65,9 +68,11 @@ namespace WebApplication1.Pages
                 return Page();
             }
 
+            // ✅ Log Password Change
+            await auditLogService.LogActionAsync(user.Id, "Password Changed", "User successfully changed their password.");
+
             await signInManager.RefreshSignInAsync(user);
             return RedirectToPage("Index");
         }
-
     }
 }

@@ -27,9 +27,9 @@ namespace WebApplication1.ViewModels
         [RegularExpression(@"^[a-zA-Z0-9\s,.-]+$", ErrorMessage = "Billing Address contains invalid characters.")]
         public string BillingAddress { get; set; }
 
-        [Required]
-        [RegularExpression(@"^[a-zA-Z0-9\s,.-]+$", ErrorMessage = "Shipping Address contains invalid characters.")]
-        public string ShippingAddress { get; set; }  // Allows letters, numbers, spaces, and ,.-
+        [Required(ErrorMessage = "Shipping Address is required.")]
+        public string ShippingAddress { get; set; }
+
 
         [Required]
         [DataType(DataType.EmailAddress)]

@@ -5,6 +5,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using WebApplication1.Model;
+using WebApplication1.Services; // ✅ Import for logging service
 
 namespace WebApplication1.Pages
 {
@@ -12,11 +13,13 @@ namespace WebApplication1.Pages
     {
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IPasswordHasher<ApplicationUser> passwordHasher;
+        private readonly IAuditLogService auditLogService; // ✅ Inject Audit Logging Service
 
-        public ResetPasswordModel(UserManager<ApplicationUser> userManager)
+        public ResetPasswordModel(UserManager<ApplicationUser> userManager, IAuditLogService auditLogService)
         {
             this.userManager = userManager;
-            this.passwordHasher = userManager.PasswordHasher; // Get Password Hasher from UserManager
+            this.passwordHasher = userManager.PasswordHasher;
+            this.auditLogService = auditLogService;
         }
 
         [BindProperty]
@@ -82,11 +85,14 @@ namespace WebApplication1.Pages
             if (resetResult.Succeeded)
             {
                 // ✅ Shift password history
-                user.PreviousPassword2 = user.PreviousPassword1;  // Move PreviousPassword1 to PreviousPassword2
-                user.PreviousPassword1 = passwordHasher.HashPassword(user, NewPassword); // Store new password in PreviousPassword1
+                user.PreviousPassword2 = user.PreviousPassword1;
+                user.PreviousPassword1 = passwordHasher.HashPassword(user, NewPassword);
 
                 // ✅ Update user in the database
                 await userManager.UpdateAsync(user);
+
+                // ✅ Log the password reset action
+                await auditLogService.LogActionAsync(user.Id, "Password Reset", "User successfully reset their password.");
 
                 return RedirectToPage("ResetPasswordSuccess");
             }

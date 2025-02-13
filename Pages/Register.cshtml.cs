@@ -102,8 +102,7 @@ namespace WebApplication1.Pages
             await userManager.AddToRoleAsync(user, "User");
 
             // Sign in and redirect to homepage
-            await signInManager.SignInAsync(user, false);
-            return RedirectToPage("Index");
+            return RedirectToPage("Login");
         }
 
         // ✅ Data Sanitization Method

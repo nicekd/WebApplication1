@@ -23,7 +23,6 @@
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
 
-
                     @{
                         if (SignInManager.IsSignedIn(User))
                         {
@@ -33,6 +32,9 @@
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-area="" asp-page="/ViewAuditLogs">Audit Logs</a>
                                 </li>
                             </ul>
 
@@ -54,7 +56,7 @@
                             </ul>
                         }
                     }
-     
+
                 </div>
             </div>
         </nav>
@@ -67,7 +69,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2024 - WebApplication1 - <a asp-area="" asp-page="/Privacy">Privacy</a>
+            &copy; 2024 - Bookworms Online - <a asp-area="" asp-page="/Privacy">Privacy</a>
         </div>
     </footer>
 

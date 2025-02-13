@@ -49,6 +49,7 @@ namespace WebApplication1.ViewModels
 
         [Required]
         [DataType(DataType.Upload)]
+        [AllowedFileExtensions(new string[] { ".jpg", ".jpeg" })] // ✅ Custom Validation for JPG
         public IFormFile Photo { get; set; }  // JPG only
     }
 }

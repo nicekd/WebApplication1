@@ -51,8 +51,9 @@ namespace WebApplication1.Pages
             // ✅ Encrypt Credit Card Number before storing
             string encryptedCreditCard = EncryptCreditCard(RModel.CreditCardNo);
 
-            // ✅ Hash the initial password
-            string hashedPassword = userManager.PasswordHasher.HashPassword(null, RModel.Password);
+            // ✅ Hash the initial password properly
+            var tempUser = new ApplicationUser();
+            string hashedPassword = userManager.PasswordHasher.HashPassword(tempUser, RModel.Password);
 
             // ✅ Create ApplicationUser object
             var user = new ApplicationUser()
@@ -67,12 +68,12 @@ namespace WebApplication1.Pages
                 CreditCardNo = encryptedCreditCard,
                 TwoFactorEnabled = true,
                 LastPasswordChangeDate = DateTime.UtcNow, // ✅ Set password creation date
-                PreviousPassword1 = hashedPassword,      // ✅ Store initial password
+                PreviousPassword1 = hashedPassword,      // ✅ Store initial password as PreviousPassword1
                 PreviousPassword2 = null                 // ✅ Ensure PreviousPassword2 is empty initially
             };
 
-            // ✅ Save Profile Photo
-            if (RModel.Photo != null)
+            // ✅ Save Profile Photo (Allow only JPG)
+            if (RModel.Photo != null && Path.GetExtension(RModel.Photo.FileName).ToLower() == ".jpg")
             {
                 string uploadsFolder = Path.Combine(webHostEnvironment.WebRootPath, "uploads");
                 Directory.CreateDirectory(uploadsFolder); // Ensure folder exists
@@ -86,6 +87,11 @@ namespace WebApplication1.Pages
                 }
 
                 user.PhotoPath = "/uploads/" + uniqueFileName; // Save relative path in database
+            }
+            else
+            {
+                ModelState.AddModelError("", "Only JPG images are allowed.");
+                return Page();
             }
 
             var result = await userManager.CreateAsync(user, RModel.Password);

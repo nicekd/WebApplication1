@@ -39,7 +39,7 @@ namespace WebApplication1.Pages
         {
         }
 
-        // Save data into the database
+        // ✅ Save data into the database
         public async Task<IActionResult> OnPostAsync()
         {
             if (!ModelState.IsValid)
@@ -48,10 +48,13 @@ namespace WebApplication1.Pages
             // ✅ Sanitize user input
             SanitizeInput();
 
-            // Encrypt Credit Card Number using settings from appsettings.json
+            // ✅ Encrypt Credit Card Number before storing
             string encryptedCreditCard = EncryptCreditCard(RModel.CreditCardNo);
 
-            // Create ApplicationUser object
+            // ✅ Hash the initial password
+            string hashedPassword = userManager.PasswordHasher.HashPassword(null, RModel.Password);
+
+            // ✅ Create ApplicationUser object
             var user = new ApplicationUser()
             {
                 UserName = RModel.Email.Trim(),
@@ -62,10 +65,13 @@ namespace WebApplication1.Pages
                 BillingAddress = RModel.BillingAddress,
                 ShippingAddress = RModel.ShippingAddress,
                 CreditCardNo = encryptedCreditCard,
-                TwoFactorEnabled = true
+                TwoFactorEnabled = true,
+                LastPasswordChangeDate = DateTime.UtcNow, // ✅ Set password creation date
+                PreviousPassword1 = hashedPassword,      // ✅ Store initial password
+                PreviousPassword2 = null                 // ✅ Ensure PreviousPassword2 is empty initially
             };
 
-            // Save Profile Photo
+            // ✅ Save Profile Photo
             if (RModel.Photo != null)
             {
                 string uploadsFolder = Path.Combine(webHostEnvironment.WebRootPath, "uploads");
@@ -99,8 +105,7 @@ namespace WebApplication1.Pages
                 return Page();
             }
 
-
-            // Assign Default Role (if needed)
+            // ✅ Assign Default Role (if needed)
             IdentityRole role = await roleManager.FindByNameAsync("User");
             if (role == null)
             {
@@ -108,11 +113,10 @@ namespace WebApplication1.Pages
             }
             await userManager.AddToRoleAsync(user, "User");
 
-            // Sign in and redirect to homepage
+            // ✅ Sign in and redirect to homepage
             return RedirectToPage("Login");
         }
 
-        // ✅ Data Sanitization Method
         // ✅ Data Sanitization & Encoding Method
         private void SanitizeInput()
         {
@@ -123,7 +127,6 @@ namespace WebApplication1.Pages
             RModel.BillingAddress = HttpUtility.HtmlEncode(CleanAddress(RModel.BillingAddress));
             RModel.ShippingAddress = HttpUtility.HtmlEncode(CleanAddress(RModel.ShippingAddress));
         }
-
 
         // ✅ Removes special characters except spaces (For Names)
         private string CleanText(string input)
@@ -137,7 +140,7 @@ namespace WebApplication1.Pages
             return string.IsNullOrWhiteSpace(input) ? "" : Regex.Replace(input.Trim(), @"[^a-zA-Z0-9\s,.-]", "");
         }
 
-        // Encrypt Credit Card Number before storing
+        // ✅ Encrypt Credit Card Number before storing
         private string EncryptCreditCard(string creditCardNo)
         {
             byte[] key = Encoding.UTF8.GetBytes(configuration["EncryptionSettings:Key"]);

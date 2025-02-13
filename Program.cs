@@ -27,6 +27,11 @@ builder.Services.AddScoped<UserManager<ApplicationUser>>(provider =>
 builder.Services.AddAuthentication("MyCookieAuth").AddCookie("MyCookieAuth", options =>
 {
     options.Cookie.Name = "MyCookieAuth";
+    options.Cookie.HttpOnly = true;  // ⛔ Prevent JavaScript from accessing the cookie
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // 🔒 Force HTTPS
+    options.Cookie.SameSite = SameSiteMode.Strict; // 🔒 Prevent CSRF attacks
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(20); // ⏳ Cookie expiration time
+    options.SlidingExpiration = true; // ⏳ Refresh session expiration on activity
     options.AccessDeniedPath = "/Account/AccessDenied";
 });
 
@@ -47,6 +52,7 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
+
 builder.Services.AddDistributedMemoryCache(); // Required for session state
 
 builder.Services.Configure<IdentityOptions>(options =>
@@ -70,7 +76,43 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseStatusCodePagesWithRedirects("/errors/{0}");
 app.UseRouting();
+
+app.UseSession(); // ✅ Ensure session is initialized before authentication
 app.UseAuthentication();
 app.UseAuthorization();
+
+// ✅ Ensure only one active session per user
+app.Use(async (context, next) =>
+{
+    var userManager = context.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
+    var signInManager = context.RequestServices.GetRequiredService<SignInManager<ApplicationUser>>();
+
+    if (context.User.Identity.IsAuthenticated && context.Session != null)
+    {
+        var user = await userManager.GetUserAsync(context.User);
+        if (user != null)
+        {
+            var sessionId = context.Session.GetString("SessionId");
+
+            // ✅ If session ID does not exist in DB, create a new one
+            if (string.IsNullOrEmpty(user.SessionId))
+            {
+                user.SessionId = sessionId;
+                await userManager.UpdateAsync(user);
+            }
+
+            // ✅ If Session ID does not match the stored one, log out previous sessions
+            if (user.SessionId != sessionId)
+            {
+                await signInManager.SignOutAsync();
+                context.Response.Redirect("/Login");
+                return;
+            }
+        }
+    }
+
+    await next();
+});
+
 app.MapRazorPages();
 app.Run();

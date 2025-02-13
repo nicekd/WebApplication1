@@ -84,7 +84,22 @@ namespace WebApplication1.Pages
             {
                 await userManager.ResetAccessFailedCountAsync(user); // ✅ Reset failed attempt count on successful login
 
-                // ✅ Step 6: Check if 2FA is enabled
+                // ✅ Step 6: Enforce Single Active Session Per User
+                string newSessionId = Guid.NewGuid().ToString(); // Generate a new session ID
+                if (user.SessionId != null)
+                {
+                    // If the user is already logged in somewhere else, log them out
+                    await signInManager.SignOutAsync();
+                }
+
+                // ✅ Update session ID in the database
+                user.SessionId = newSessionId;
+                await userManager.UpdateAsync(user);
+
+                // ✅ Store session in HttpContext
+                HttpContext.Session.SetString("SessionId", newSessionId);
+
+                // ✅ Step 7: Check if 2FA is enabled
                 if (await userManager.GetTwoFactorEnabledAsync(user))
                 {
                     // ✅ Temporarily authenticate the user, requiring 2FA verification

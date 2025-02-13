@@ -34,5 +34,7 @@ namespace WebApplication1.Model
         public DateTime? LastPasswordChangeDate { get; set; } // Track last password change
         public string? PreviousPassword1 { get; set; } = null;
         public string? PreviousPassword2 { get; set; } = null;
+
+        public string? SessionId { get; set; } // ✅ Stores unique session ID
     }
 }

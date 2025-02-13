@@ -76,7 +76,37 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-app.UseStatusCodePagesWithRedirects("/errors/{0}");
+app.Use(async (context, next) =>
+{
+    await next();
+
+    if (context.Response.StatusCode == 404)
+    {
+        context.Response.Redirect("/errors/404");
+    }
+    else if (context.Response.StatusCode == 403)
+    {
+        context.Response.Redirect("/errors/403");
+    }
+    else if (context.Response.StatusCode == 500)
+    {
+        context.Response.Redirect("/errors/500");
+    }
+});
+
+// ✅ Basic Global Exception Handling - Redirects to /errors/500
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch
+    {
+        context.Response.Redirect("/errors/500");
+    }
+});
+
 app.UseRouting();
 
 app.UseSession(); // ✅ Ensure session is initialized before authentication

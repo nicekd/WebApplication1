@@ -82,16 +82,23 @@ namespace WebApplication1.Pages
                 user.PhotoPath = "/uploads/" + uniqueFileName; // Save relative path in database
             }
 
-            // Save user in Identity
             var result = await userManager.CreateAsync(user, RModel.Password);
             if (!result.Succeeded)
             {
                 foreach (var error in result.Errors)
                 {
-                    ModelState.AddModelError("", error.Description);
+                    if (error.Code == "DuplicateUserName") // Identity treats Email as UserName
+                    {
+                        ModelState.AddModelError("", $"Email '{RModel.Email}' is already in use.");
+                    }
+                    else
+                    {
+                        ModelState.AddModelError("", error.Description);
+                    }
                 }
                 return Page();
             }
+
 
             // Assign Default Role (if needed)
             IdentityRole role = await roleManager.FindByNameAsync("User");

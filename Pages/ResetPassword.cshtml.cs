@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using WebApplication1.Model;
@@ -10,10 +11,12 @@ namespace WebApplication1.Pages
     public class ResetPasswordModel : PageModel
     {
         private readonly UserManager<ApplicationUser> userManager;
+        private readonly IPasswordHasher<ApplicationUser> passwordHasher;
 
         public ResetPasswordModel(UserManager<ApplicationUser> userManager)
         {
             this.userManager = userManager;
+            this.passwordHasher = userManager.PasswordHasher; // Get Password Hasher from UserManager
         }
 
         [BindProperty]
@@ -46,8 +49,6 @@ namespace WebApplication1.Pages
 
         public async Task<IActionResult> OnPostAsync()
         {
-            System.Diagnostics.Debug.WriteLine("ResetPassword OnPostAsync method triggered.");
-
             var user = await userManager.FindByIdAsync(UserId);
             if (user == null)
             {
@@ -55,21 +56,47 @@ namespace WebApplication1.Pages
                 return Page();
             }
 
-            var result = await userManager.ResetPasswordAsync(user, Token, NewPassword);
-            if (result.Succeeded)
+            // ✅ Prevent reusing the last 2 passwords
+            if (!string.IsNullOrEmpty(user.PreviousPassword1))
             {
-                System.Diagnostics.Debug.WriteLine("Password reset successful.");
-                return RedirectToPage("ResetPasswordSuccess"); // ✅ Redirecting to success page
+                var result1 = passwordHasher.VerifyHashedPassword(user, user.PreviousPassword1, NewPassword);
+                if (result1 == PasswordVerificationResult.Success)
+                {
+                    ModelState.AddModelError("", "You cannot reuse your last 2 passwords.");
+                    return Page();
+                }
             }
 
-            foreach (var error in result.Errors)
+            if (!string.IsNullOrEmpty(user.PreviousPassword2))
+            {
+                var result2 = passwordHasher.VerifyHashedPassword(user, user.PreviousPassword2, NewPassword);
+                if (result2 == PasswordVerificationResult.Success)
+                {
+                    ModelState.AddModelError("", "You cannot reuse your last 2 passwords.");
+                    return Page();
+                }
+            }
+
+            // ✅ Reset Password
+            var resetResult = await userManager.ResetPasswordAsync(user, Token, NewPassword);
+            if (resetResult.Succeeded)
+            {
+                // ✅ Shift password history
+                user.PreviousPassword2 = user.PreviousPassword1;  // Move PreviousPassword1 to PreviousPassword2
+                user.PreviousPassword1 = passwordHasher.HashPassword(user, NewPassword); // Store new password in PreviousPassword1
+
+                // ✅ Update user in the database
+                await userManager.UpdateAsync(user);
+
+                return RedirectToPage("ResetPasswordSuccess");
+            }
+
+            foreach (var error in resetResult.Errors)
             {
                 ModelState.AddModelError("", error.Description);
             }
 
-            System.Diagnostics.Debug.WriteLine("Password reset failed.");
-            return Page(); // Stay on the same page if reset fails
+            return Page();
         }
-
     }
 }
